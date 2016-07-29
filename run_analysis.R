@@ -1,6 +1,27 @@
 ## data directory location
 datadir <- "UCI HAR Dataset"
 
+## merge and clean all data
+mergeandclean <- function() {
+    cleandata <- mergetestandtrain()
+    cleandata$activity <- setactivitynames(cleandata$activity)
+    cleandata
+}
+
+## get average of each variable for each activity and each subject
+getavgsforactivity <- function(){
+    ddply(cleandata, c("subject"), 
+          summarise, 
+          mean = mean(1:151, na.rm=TRUE), 
+          sd = sd(1:151, na.rm=TRUE))
+}
+
+## merges the training and test data sets to create one data set
+mergetestandtrain <- function(...) {
+    alldata <- rbind(mergetrain(), mergetest())
+    alldata
+}
+
 ## merge training data
 mergetrain <- function(trainfile_x = "X_train.txt",
                        trainfile_y = "y_train.txt",
@@ -14,9 +35,11 @@ mergetrain <- function(trainfile_x = "X_train.txt",
        & file.exists(trainfile_y) 
        & file.exists(trainfile_subject)) {
         traindata_x <- read.table(trainfile_x)
+        names(traindata_x) <- getfeaturelabels()
         traindata_y <- read.table(trainfile_y)
+        names(traindata_y) <- c("activity")
         traindata_subject <- read.table(trainfile_subject)
-        
+        names(traindata_subject) <- c("subject")
         trainall <- cbind(traindata_x, traindata_y, traindata_subject)
     }
     else {
@@ -38,8 +61,11 @@ mergetest <- function(testfile_x = "X_test.txt",
        & file.exists(testfile_y) 
        & file.exists(testfile_subject)) {
         testdata_x <- read.table(testfile_x)
+        names(testdata_x) <- getfeaturelabels()
         testdata_y <- read.table(testfile_y)
+        names(testdata_y) <- c("activity")
         testdata_subject <- read.table(testfile_subject)
+        names(testdata_subject) <- c("subject")
         
         testall <- cbind(testdata_x, testdata_y, testdata_subject)
     }
@@ -49,13 +75,6 @@ mergetest <- function(testfile_x = "X_test.txt",
     testall
 }
 
-
-## merges the training and test data sets to create one data set
-mergetestandtrain <- function(...) {
-    alldata <- rbind(mergetrain(), mergetest())
-    alldata
-}
-
 ## extracts mean and sd for each measurement
 getmeanandsdmeasurements <- function(dataset) {
     ## get the means 
@@ -63,6 +82,7 @@ getmeanandsdmeasurements <- function(dataset) {
     ## get the sd
     stddeviations <- apply(dataset, 2, sd)
     meanandsd <- rbind(means, stddeviations)
+    meanandsd
 }
 
 ## replace activities with descriptive activity names
@@ -73,10 +93,13 @@ setactivitynames <- function(activitydata,
     names(activitylabels) <- c("code", "description")
     activitylabels$description <- lapply(activitylabels$description, as.character)
     library(plyr)
-    mapvalues(activitydata[[1]], activitylabels$code, activitylabels$description)
+    mapvalues(activitydata, activitylabels$code, activitylabels$description)
 }
 
 ## labels data in the data set with appropriate label names
-labeldataset <- function(featuresfile, dataset) {
+getfeaturelabels <- function(featuresfile = "features.txt") {
     featuresfile <- paste(datadir, featuresfile, sep = "/")
+    featurelabels <- read.table(featuresfile)
+    names(featurelabels) <- c("column", "label")
+    featurelabels$label
 }
