@@ -2,18 +2,23 @@
 datadir <- "UCI HAR Dataset"
 
 ## merge and clean all data
-mergeandclean <- function() {
+mergeandclean <- function(...) {
     cleandata <- mergetestandtrain()
     cleandata$activity <- setactivitynames(cleandata$activity)
+    ## flatten list into character vector so that it can be written to file
+    cleandata$activity <- vapply(cleandata$activity, 
+                                 paste, 
+                                 collapse = ", ", 
+                                 character(1L))
     cleandata
 }
 
 ## get average of each variable for each activity and each subject
-getavgsforactivity <- function(){
-    ddply(cleandata, c("subject"), 
-          summarise, 
-          mean = mean(1:151, na.rm=TRUE), 
-          sd = sd(1:151, na.rm=TRUE))
+getavgsforactivity <- function(cleandata){
+    aggregate(cleandata[ ,1:151], 
+              list(activity = cleandata$activity, 
+                   subject = cleandata$subject), 
+              mean)
 }
 
 ## merges the training and test data sets to create one data set
